@@ -18,8 +18,22 @@ const beritaCollection = db.collection("berita");
 
 app.get("/berita", async (req, res) => {
   try {
-    const berita = await beritaCollection.find().toArray();
-    res.json(berita);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    const [berita, total] = await Promise.all([
+      beritaCollection.find().skip(skip).limit(limit).toArray(),
+      beritaCollection.countDocuments(),
+    ]);
+
+    res.json({
+      data: berita,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
